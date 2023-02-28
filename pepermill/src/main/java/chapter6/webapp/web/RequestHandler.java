@@ -1,24 +1,19 @@
 package chapter6.webapp.web;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.Socket;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import chapter6.webapp.domain.UserController;
 import chapter6.webapp.domain.UserService;
 import chapter6.webapp.domain.repository.UserJdbcRepository;
 import chapter6.webapp.domain.repository.UserRepository;
 import chapter6.webapp.web.http.HttpRequest;
 import chapter6.webapp.web.http.HttpResponse;
-import chapter6.webapp.web.storoage.SessionStorage;
 import chapter6.webapp.web.storoage.jdbc.DataSourceProperties;
 import chapter6.webapp.web.storoage.jdbc.JdbcConnectionManager;
+import chapter6.webapp.web.storoage.session.HttpSessionStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.Socket;
 
 public class RequestHandler extends Thread {
 
@@ -28,7 +23,7 @@ public class RequestHandler extends Thread {
 		DataSourceProperties.createTestDataSourceProperties()
 	);
 	static UserRepository userRepository = new UserJdbcRepository(jdbcConnectionManager);
-	static SessionStorage sessionStorage = new SessionStorage();
+	static ViewResolver viewResolver = new ViewResolver();
 
 	private Socket connection;
 
@@ -40,9 +35,6 @@ public class RequestHandler extends Thread {
 	public void run() {
 		log.debug("Connected IP : {}, Port : {}", connection.getInetAddress(), connection.getPort());
 
-		ViewResolver viewResolver = new ViewResolver();
-		UserController userController = new UserController(new UserService(userRepository, sessionStorage));
-		MethodHandler methodHandler = new MethodHandler(UserController.class, userController);
 
 		try (InputStream in = connection.getInputStream();
 			 OutputStream out = connection.getOutputStream();
@@ -51,6 +43,10 @@ public class RequestHandler extends Thread {
 			HttpRequest request = new HttpRequest(reader);
 			HttpResponse response = HttpResponse.defaultHttpResponse();
 
+			HttpSessionStorage httpSessionStorage = new HttpSessionStorage();
+
+			UserController userController = new UserController(new UserService(userRepository, httpSessionStorage));
+			MethodHandler methodHandler = new MethodHandler(UserController.class, userController);
 			methodHandler.invokeMethod(request, response);
 
 			viewResolver.sendView(response, out);
