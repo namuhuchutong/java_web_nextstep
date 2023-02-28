@@ -1,10 +1,11 @@
 package chapter6.webapp.web.http;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import chapter6.webapp.web.storoage.session.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 응답 헤더와 바디 정보를 담고 있는 클래스
@@ -24,6 +25,7 @@ public class HttpResponse {
 	private HttpHeaders httpHeaders;
 	private String body;
 	private String htmlLocation;
+	private HttpSession httpSession;
 
 	public static HttpResponse defaultHttpResponse() {
 		return new HttpResponse(HttpStatusCode.OK, HttpHeaders.emptyHeaders(), EMPTY_BODY, DEFAULT_HTML);
@@ -41,13 +43,9 @@ public class HttpResponse {
 
 	public String getResponse() {
 		String header = getHeaderString();
-		String join = String.join(DELIMITER,
+		return String.join(DELIMITER,
 			HTTP_1_1 + WHITE_SPACE + httpStatusCode.getHttpStatusCode() + WHITE_SPACE
-				+ httpStatusCode.getHttpStatusDescription(),
-			header + DELIMITER, "");
-		log.debug("--- created header ---");
-		log.debug(join);
-		return join;
+				+ httpStatusCode.getHttpStatusDescription(), header + DELIMITER, "");
 	}
 
 	private String getHeaderString() {
